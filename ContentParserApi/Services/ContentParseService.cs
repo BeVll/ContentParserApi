@@ -30,7 +30,7 @@ public class ContentParseService : IContentParseService
             var data = type switch
             {
                 ContentType.CSV => ParseCsv(decodedContent), 
-                ContentType.INTERNAL_JSON => ParseJson(decodedContent),
+                ContentType.INTERNAL_JSON => ParseInternalJson(decodedContent),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), "Invalid content type")
             };
 
@@ -72,7 +72,7 @@ public class ContentParseService : IContentParseService
         return rows;
     }
 
-    private static IReadOnlyList<Dictionary<string, string>> ParseJson(string content)
+    private static IReadOnlyList<Dictionary<string, string>> ParseInternalJson(string content)
     {
         List<Dictionary<string, JsonElement>>? rawItems;
         try
