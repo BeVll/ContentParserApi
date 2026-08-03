@@ -48,14 +48,27 @@ public class ContentParseService : IContentParseService
 
     private static IReadOnlyList<Dictionary<string, string>> ParseCsv(string content)
     {
-        using (var reader = new StreamReader(content))
-        using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-        {
-            var records = csv.GetRecords<Dictionary<string, string>>();
+        using var reader = new StringReader(content);
+        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
 
-            return records.ToList();
+        csv.Read();
+        csv.ReadHeader();
+
+        var rows = new List<Dictionary<string, string>>();
+
+        while (csv.Read())
+        {
+            var row = new Dictionary<string, string>();
+
+            foreach (var header in csv.HeaderRecord!)
+            {
+                row[header] = csv.GetField(header) ?? string.Empty;
+            }
+                
+            rows.Add(row);
         }
-        
+
+        return rows;
     }
 
     private static ParseContentResponse Error(string message) => new()

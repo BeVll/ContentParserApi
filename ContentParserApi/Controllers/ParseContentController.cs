@@ -1,4 +1,5 @@
 using ContentParserApi.Constants;
+using ContentParserApi.Interfaces;
 using ContentParserApi.Models.Requests;
 using ContentParserApi.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,12 @@ namespace ContentParserApi.Controllers;
 [Route("api/v1")]
 public sealed class ParseContentController : Controller
 {
+    private readonly IContentParseService _contentParseService;
+
+    public ParseContentController(IContentParseService contentParseService)
+    {
+        _contentParseService = contentParseService;
+    }
     
     [HttpPost("parse-content")]
     [Consumes("application/json")]
@@ -37,6 +44,6 @@ public sealed class ParseContentController : Controller
             });
         }
 
-        return Ok();
+        return Ok(_contentParseService.Parse(request.Type, request.Content));
     }
 }
