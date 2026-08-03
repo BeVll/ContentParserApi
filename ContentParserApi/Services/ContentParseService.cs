@@ -1,10 +1,11 @@
 using System.Globalization;
-using System.Runtime.InteropServices.JavaScript;
 using System.Text;
+using System.Text.Json;
 using ContentParserApi.Constants;
 using ContentParserApi.Interfaces;
 using ContentParserApi.Models.Responses;
 using CsvHelper;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace ContentParserApi.Services;
 
@@ -29,7 +30,7 @@ public class ContentParseService : IContentParseService
             var data = type switch
             {
                 ContentType.CSV => ParseCsv(decodedContent), 
-                ContentType.INTERNAL_JSON => ParseCsv(decodedContent),
+                ContentType.INTERNAL_JSON => ParseJson(decodedContent),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), "Invalid content type")
             };
 
@@ -69,6 +70,52 @@ public class ContentParseService : IContentParseService
         }
 
         return rows;
+    }
+
+    private static IReadOnlyList<Dictionary<string, string>> ParseJson(string content)
+    {
+        List<Dictionary<string, JsonElement>>? rawItems;
+        try
+        {
+            rawItems = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement>>>(content);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("INTERNAL_JSON content is invalid", ex);
+        }
+
+        if (rawItems is null)
+            throw new InvalidOperationException("INTERNAL_JSON content is invalid");
+
+        if (rawItems.Count == 0)
+        {
+            throw new InvalidOperationException("INTERNAL_JSON must contain at least one object");
+        }
+
+        var result = new List<Dictionary<string, string>>(rawItems.Count);
+
+        foreach (var item in rawItems)
+        {
+            var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var (key, value) in item)
+            {
+                row[key] = value.ValueKind switch
+                {
+                    JsonValueKind.String => value.GetString() ?? string.Empty,
+                    JsonValueKind.Number => value.ToString(),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    JsonValueKind.Null => string.Empty,
+                    _ => throw new InvalidOperationException(
+                        $"Unsupported JSON value for field '{key}'.")
+                };
+            }
+            
+            result.Add(row);
+        }
+
+        return result;
     }
 
     private static ParseContentResponse Error(string message) => new()

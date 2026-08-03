@@ -8,7 +8,7 @@ namespace ContentParserApi.Controllers;
 
 [ApiController]
 [Route("api/v1")]
-public sealed class ParseContentController : Controller
+public sealed class ParseContentController : ControllerBase
 {
     private readonly IContentParseService _contentParseService;
 
@@ -32,8 +32,20 @@ public sealed class ParseContentController : Controller
                 Error = "Content is required"
             });
         }
+        
+        if (string.IsNullOrEmpty(request.Type))
+        {
+            return BadRequest(new ParseContentResponse()
+            {
+                Status = ResponseStatus.Error,
+                Count = 0,
+                Data = [],
+                Error = "Content type is required"
+            });
+        }
 
-        if (!Enum.IsDefined(typeof(ContentType), request.Type))
+        if (!Enum.TryParse<ContentType>(request.Type, ignoreCase: true, out var contentType)
+            || !Enum.IsDefined(contentType))
         {
             return BadRequest(new ParseContentResponse()
             {
@@ -44,6 +56,8 @@ public sealed class ParseContentController : Controller
             });
         }
 
-        return Ok(_contentParseService.Parse(request.Type, request.Content));
+        var result = _contentParseService.Parse(contentType, request.Content);
+
+        return result.Status == ResponseStatus.Error ? BadRequest(result) : Ok(result);
     }
 }
