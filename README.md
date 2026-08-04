@@ -2,9 +2,6 @@
 
 ASP.NET Core Web API endpoint that accepts a Base64-encoded payload and parses it as `CSV` or `INTERNAL_JSON`.
 
-## Requirements
-
-- .NET 8 SDK or newer
 
 ## Run locally
 
